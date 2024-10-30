@@ -54,10 +54,6 @@ public class Epic extends Task {
      * потому что они не учитывают это поле
      */
     //не понял - если учитывать subtasks, то т.к список subtasks изменяемый - получаются хеш будет постоянно меняться
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), getId());
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -65,6 +61,11 @@ public class Epic extends Task {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Epic epic = (Epic) o;
-        return getId() == epic.getId();
+        return Objects.equals(getSubtasks(), epic.getSubtasks());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getSubtasks());
     }
 }
