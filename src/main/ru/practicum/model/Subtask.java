@@ -3,12 +3,23 @@ package ru.practicum.model;
 import java.util.Objects;
 
 public class Subtask extends Task {
-    private final int epicId;
+    private int epicId;
     private int subtaskId;
 
     public Subtask(String name, String description, int epicId) {
         super(name, description);
-        this.epicId = epicId;
+        setEpicId(epicId);
+    }
+
+    /**
+     * Копирующий конструктор для создания нового экземпляра Subtask на основе другого Subtask.
+     * Копирует все данные задачи и сохраняет идентификатор связанного эпика.
+     *
+     * @param other другой объект Subtask, данные которого нужно скопировать
+     */
+    public Subtask(Subtask other) {
+        super(other);
+        this.epicId = other.epicId;
     }
 
     public Subtask(int subtaskId, String name, String description, int epicId) {
@@ -29,15 +40,21 @@ public class Subtask extends Task {
         this.subtaskId = subtaskId;
     }
 
+    public void setEpicId(int epicId) {
+        if (epicId == this.getId()) {
+            throw new IllegalArgumentException("Подзадача не может ссылаться на свой же эпик.");
+        }
+        this.epicId = epicId;
+    }
+
     @Override
     public String toString() {
-        return "Subtask{" +
-                "subtaskId=" + subtaskId + "," +
-                "name=" + (getName() != null ? getName() : "Unnamed") + "," +
-                "description='" + (getDescription() != null ? getDescription() : "No description") + ", " +
-                "epicId=" + (epicId != 0 ? epicId : "No epic") + ", " +
-                "status=" + getStatus() +
-                '}' + "\n";
+        return "Subtask{subtaskId=" + getId() +
+                ", name=" + getName() +
+                ", description='" + getDescription() + '\'' +
+                ", epicId=" + epicId +
+                ", status=" + getStatus() +
+                '}';
     }
 
     @Override

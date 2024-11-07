@@ -3,16 +3,9 @@ package ru.practicum.model;
 import java.util.Objects;
 
 public class Task {
-    /**
-     * зачем делать имя и описание неизменяемыми?
-     * Следует убрать final с имени и name и description и добавить для этих полей сеттеры
-     *  .DONE
-     */
     private String name;
     private int taskId;
-    /**
-     * айди так же следует сделать private
-     */
+
     private Status status;
     private String description;
 
@@ -29,12 +22,14 @@ public class Task {
         setStatus(Status.NEW);
     }
 
-    /**
-     * у тебя тут все идет вперемешку сейчас,
-     * а принято располагать вначале поля, потом конструкторы,
-     * далее сеттеры/геттеры и ниже переопределенные методы
-     *  .DONE
-     */
+    // Копирующий конструктор
+    public Task(Task other) {
+        this.taskId = other.taskId;
+        this.name = other.name;
+        this.description = other.description;
+        this.status = other.status;
+    }
+
     public void setStatus(Status status) {
         this.status = status;
     }
@@ -43,7 +38,9 @@ public class Task {
         return taskId;
     }
 
-    public void setId(int id) { this.taskId = id; }
+    public void setId(int id) {
+        this.taskId = id;
+    }
 
     public String getName() {
         return name;
@@ -67,12 +64,8 @@ public class Task {
 
     @Override
     public String toString() {
-        return "Task{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", id=" + taskId +
-                ", status='" + status + '\'' +
-                '}';
+        return "Task{" + "name='" + name + '\'' + ", description='" + description +
+                '\'' + ", id=" + taskId + ", status='" + status + '\'' + '}';
     }
 
     @Override
