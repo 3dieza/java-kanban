@@ -14,13 +14,13 @@ public class Main {
 
         createAndDisplayTasks(taskManager);
         createAndDisplayEpics(taskManager);
-        createAndDisplaySubtasks(taskManager, taskManager.getAllEpics().get(0)); // Пример использования первого эпика
+        createAndDisplaySubtasks(taskManager, taskManager.getAllEpics().getFirst()); // Пример использования первого эпика
 
-        checkEpicStatusChanges(taskManager, taskManager.getAllEpics().get(0));
+        checkEpicStatusChanges(taskManager, taskManager.getAllEpics().getFirst());
         viewAndDisplayHistory(taskManager);
         updateAndDeleteTasks(taskManager);
-        updateAndDeleteSubtasks(taskManager, taskManager.getAllSubtasks().get(0));
-        updateAndDeleteEpic(taskManager, taskManager.getAllEpics().get(0));
+        updateAndDeleteSubtasks(taskManager, taskManager.getAllSubtasks().getFirst());
+        updateAndDeleteEpic(taskManager, taskManager.getAllEpics().getFirst());
         deleteAndDisplayAll(taskManager);
     }
 
@@ -87,6 +87,8 @@ public class Main {
         System.out.println("\nПросматриваем задачи и эпики для истории...");
         taskManager.getAllTasks().forEach(task -> taskManager.getTaskById(task.getId()));
         taskManager.getAllEpics().forEach(epic -> taskManager.getEpicById(epic.getId()));
+        taskManager.getTaskById(1);
+        taskManager.getTaskById(1);
 
         System.out.println("История просмотров:");
         taskManager.getHistory().forEach(System.out::println);
@@ -102,7 +104,7 @@ public class Main {
         System.out.println("Все задачи после обновления:");
         taskManager.getAllTasks().forEach(System.out::println);
 
-        Task taskToDelete = taskManager.getAllTasks().get(0); // Пример использования первой задачи
+        Task taskToDelete = taskManager.getAllTasks().getFirst(); // Пример использования первой задачи
         taskManager.deleteTaskById(taskToDelete.getId());
 
         System.out.println("Все задачи после удаления:");
@@ -135,7 +137,7 @@ public class Main {
 
         // Получение подзадачи для проверки метода getSubtaskById
         if (!taskManager.getAllSubtasks().isEmpty()) {
-            Subtask subtask = taskManager.getAllSubtasks().get(0);
+            Subtask subtask = taskManager.getAllSubtasks().getFirst();
             System.out.println("Получение подзадачи по ID: " + subtask.getSubtaskId());
             System.out.println(taskManager.getSubtaskById(subtask.getSubtaskId()));
         }
