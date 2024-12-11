@@ -13,20 +13,7 @@ public class InMemoryHistoryManager implements HistoryManager {
     private Node<Task> head;
     private Node<Task> tail;
 
-    static class Node<E> {
-        public E element;
-        public Node<E> next;
-        public Node<E> prev;
-
-
-        public Node(Node<E> prev, E element, Node<E> next) {
-            this.prev = prev;
-            this.element = element;
-            this.next = next;
-        }
-    }
-
-    public void linkLast(Task element) {
+    private void linkLast(Task element) {
         if (hisoryNode.containsKey(element.getId())) {
             removeNode(hisoryNode.get(element.getId()));
         }
@@ -55,7 +42,7 @@ public class InMemoryHistoryManager implements HistoryManager {
         return result;
     }
 
-    public void removeNode(Node<Task> node) {
+    private void removeNode(Node<Task> node) {
         if (node == null) return;
         final Node<Task> prev = node.prev;
         final Node<Task> next = node.next;
@@ -74,5 +61,18 @@ public class InMemoryHistoryManager implements HistoryManager {
     public void remove(int id) {
         Node<Task> taskNode = hisoryNode.get(id);
         if (taskNode != null) removeNode(taskNode);
+    }
+
+    static class Node<E> {
+        public E element;
+        public Node<E> next;
+        public Node<E> prev;
+
+
+        public Node(Node<E> prev, E element, Node<E> next) {
+            this.prev = prev;
+            this.element = element;
+            this.next = next;
+        }
     }
 }
