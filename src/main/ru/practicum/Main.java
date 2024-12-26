@@ -4,24 +4,59 @@ import ru.practicum.model.Epic;
 import ru.practicum.model.Status;
 import ru.practicum.model.Subtask;
 import ru.practicum.model.Task;
+import ru.practicum.service.FileBackedTaskManager;
 import ru.practicum.service.Managers;
 import ru.practicum.service.TaskManager;
+
+import java.io.File;
 
 public class Main {
 
     public static void main(String[] args) {
         TaskManager taskManager = Managers.getDefaultTaskManager();
+//        File tempFile = File.createTempFile("tasks_export", ".csv");
+        File tempFile = new File("tasks_export.csv");
+        FileBackedTaskManager fileManager = new FileBackedTaskManager(tempFile);
 
         createAndDisplayTasks(taskManager);
         createAndDisplayEpics(taskManager);
-        createAndDisplaySubtasks(taskManager, taskManager.getAllEpics().getFirst()); // Пример использования первого эпика
+        createAndDisplaySubtasks(taskManager, taskManager.getAllEpics().getFirst());
 
+        prepareForFileManager(fileManager, tempFile);
         checkEpicStatusChanges(taskManager, taskManager.getAllEpics().getFirst());
         viewAndDisplayHistory(taskManager);
         updateAndDeleteTasks(taskManager);
         updateAndDeleteSubtasks(taskManager, taskManager.getAllSubtasks().getFirst());
         updateAndDeleteEpic(taskManager, taskManager.getAllEpics().getFirst());
         deleteAndDisplayAll(taskManager);
+    }
+
+    private static void prepareForFileManager(FileBackedTaskManager fileManager, File tempFile) {
+        System.out.println("Preparing for file manager");
+        // Создаем задачи и эпики
+        Task task1 = new Task("Task 777", "Description 777");
+        Epic epic1 = new Epic("Epic 777", "Description for Epic 777");
+
+        // Сохраняем эпик и получаем его ID
+        fileManager.saveTask(task1);
+        fileManager.saveEpic(epic1);
+
+        System.out.println("Создан эпик: " + epic1);
+
+        // Создаем подзадачу, связывая с существующим эпиком
+        Subtask subtask1 = new Subtask("Subtask 777", "Description for Subtask 777", epic1.getId());
+        fileManager.saveSubtask(subtask1);
+
+        System.out.println("Создана подзадача: " + subtask1);
+
+        System.out.println("Задачи сохранены в файл!");
+        FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile);
+
+        // Проверяем импортированные данные
+        System.out.println("\nПроверка импортированных задач:");
+        loadedManager.getAllTasks().forEach(System.out::println);
+        loadedManager.getAllEpics().forEach(System.out::println);
+        loadedManager.getAllSubtasks().forEach(System.out::println);
     }
 
     private static void createAndDisplayTasks(TaskManager taskManager) {

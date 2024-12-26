@@ -39,17 +39,25 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void saveEpic(Epic epic) {
         epic.setId(idCounter++);
+        epic.setEpicId(epic.getId());
         epics.put(epic.getId(), epic);
+    }
+
+    public HistoryManager getHistoryManager() {
+        return historyManager;
     }
 
     @Override
     public void saveSubtask(Subtask subtask) {
         if (epics.containsKey(subtask.getEpicId())) {
-            subtask.setSubtaskId(idCounter++);
-            subtasks.put(subtask.getSubtaskId(), subtask);
+            subtask.setId(idCounter++);
+            subtask.setSubtaskId(subtask.getId());
+            subtasks.put(subtask.getId(), subtask);
             Epic epic = epics.get(subtask.getEpicId());
             epic.addSubtask(subtask);
             updateEpicStatus(epic);
+        } else {
+            throw new IllegalArgumentException("Эпик с ID " + subtask.getEpicId() + " не найден.");
         }
     }
 
@@ -147,6 +155,10 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public List<Subtask> getAllSubtasksByEpic(Epic epic) {
         return epic.getSubtasks();
+    }
+
+    public Map<Integer, Epic> getEpics() {
+        return epics;
     }
 
     @Override
