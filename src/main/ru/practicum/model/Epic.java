@@ -5,6 +5,12 @@ import java.util.List;
 import java.util.Objects;
 
 public class Epic extends Task {
+    private int epicId;
+
+    public int getEpicId() {
+        return epicId;
+    }
+
     private List<Subtask> subtasks = new ArrayList<>();
 
     public Epic(String name, String description) {
