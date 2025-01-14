@@ -1,13 +1,15 @@
 package ru.practicum.model;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Subtask extends Task {
     private int epicId;
     private int subtaskId;
 
-    public Subtask(String name, String description, int epicId) {
-        super(name, description);
+    public Subtask(String name, String description, Duration duration, LocalDateTime startTime, int epicId) {
+        super(name, description, duration, startTime);
         setEpicId(epicId);
     }
 
@@ -23,14 +25,21 @@ public class Subtask extends Task {
         this.epicId = other.epicId;
     }
 
-    public Subtask(int subtaskId, String name, String description, int epicId) {
-        super(name, description);
+    public Subtask(int subtaskId, String name, String description, Duration duration, LocalDateTime startTime, int epicId) {
+        super(name, description, duration, startTime);
         this.epicId = epicId;
         this.subtaskId = subtaskId;
     }
 
     public int getEpicId() {
         return epicId;
+    }
+
+    public void setEpicId(int epicId) {
+        if (epicId == this.getId()) {
+            throw new IllegalArgumentException("Подзадача не может ссылаться на свой же эпик.");
+        }
+        this.epicId = epicId;
     }
 
     public int getSubtaskId() {
@@ -41,13 +50,6 @@ public class Subtask extends Task {
         this.subtaskId = subtaskId;
     }
 
-    public void setEpicId(int epicId) {
-        if (epicId == this.getId()) {
-            throw new IllegalArgumentException("Подзадача не может ссылаться на свой же эпик.");
-        }
-        this.epicId = epicId;
-    }
-
     @Override
     public String toString() {
         return "Subtask{subtaskId = " + getId() +
@@ -55,6 +57,8 @@ public class Subtask extends Task {
                 ", description = '" + getDescription() + '\'' +
                 ", epicId = " + getEpicId() +
                 ", status = " + getStatus() +
+                ", startTime = " + getStartTime() +
+                ", duration = " + getDuration() +
                 '}';
     }
 

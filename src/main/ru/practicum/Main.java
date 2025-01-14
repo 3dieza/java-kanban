@@ -9,192 +9,257 @@ import ru.practicum.service.Managers;
 import ru.practicum.service.TaskManager;
 
 import java.io.File;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class Main {
 
     public static void main(String[] args) {
-        TaskManager taskManager = Managers.getDefaultTaskManager();
-//        File tempFile = File.createTempFile("tasks_export", ".csv");
+        // Тестирование FileBackedTaskManager
         File tempFile = new File("tasks_export.csv");
         FileBackedTaskManager fileManager = new FileBackedTaskManager(tempFile);
+        testFileBackedTaskManager(fileManager, tempFile);
 
-        createAndDisplayTasks(taskManager);
-        createAndDisplayEpics(taskManager);
-        createAndDisplaySubtasks(taskManager, taskManager.getAllEpics().getFirst());
+        // Тестирование InMemoryTaskManager
+        TaskManager inMemoryManager = Managers.getDefaultTaskManager();
+        testInMemoryTaskManager(inMemoryManager);
 
-        prepareForFileManager(fileManager, tempFile);
-        checkEpicStatusChanges(taskManager, taskManager.getAllEpics().getFirst());
-        viewAndDisplayHistory(taskManager);
-        updateAndDeleteTasks(taskManager);
-        updateAndDeleteSubtasks(taskManager, taskManager.getAllSubtasks().getFirst());
-        updateAndDeleteEpic(taskManager, taskManager.getAllEpics().getFirst());
-        deleteAndDisplayAll(taskManager);
+        // Тестирование пересечений задач, эпиков и подзадач
+        testTaskSubtaskEpicOverlaps(inMemoryManager);
+        testTaskSubtaskEpicOverlaps(fileManager);
+
+        // Список задач, эпиков и подзадач (по приоритету)
+        System.out.println("************************************");
+        System.out.println("Список задач, эпиков и подзадач (по приоритету):");
+        inMemoryManager.getPrioritizedTasks().forEach(System.out::println);
+
+        // Тестирование обновления задач и эпиков
+        testUpdateFunctions(inMemoryManager);
     }
 
-    private static void prepareForFileManager(FileBackedTaskManager fileManager, File tempFile) {
-        System.out.println("Preparing for file manager");
-        // Создаем задачи и эпики
-        Task task1 = new Task("Task 777", "Description 777");
-        Epic epic1 = new Epic("Epic 777", "Description for Epic 777");
+    private static void testFileBackedTaskManager(FileBackedTaskManager fileManager, File tempFile) {
+        System.out.println("************************************");
+        System.out.println("Тестирование FileBackedTaskManager");
 
-        // Сохраняем эпик и получаем его ID
-        fileManager.saveTask(task1);
-        fileManager.saveEpic(epic1);
+        createAndSaveTasks(fileManager);
+        createAndSaveEpics(fileManager);
+        createAndSaveSubtasks(fileManager);
 
-        System.out.println("Создан эпик: " + epic1);
-
-        // Создаем подзадачу, связывая с существующим эпиком
-        Subtask subtask1 = new Subtask("Subtask 777", "Description for Subtask 777", epic1.getId());
-        fileManager.saveSubtask(subtask1);
-
-        System.out.println("Создана подзадача: " + subtask1);
-
-        System.out.println("Задачи сохранены в файл!");
+        // Проверка загрузки из файла
+        System.out.println("Задачи сохранены в файл. Проверка загрузки из файла...");
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile);
-
-        // Проверяем импортированные данные
-        System.out.println("\nПроверка импортированных задач:");
         loadedManager.getAllTasks().forEach(System.out::println);
         loadedManager.getAllEpics().forEach(System.out::println);
         loadedManager.getAllSubtasks().forEach(System.out::println);
+
+        // Проверка изменения статуса эпика
+        testEpicStatusChanges(loadedManager);
+
+        // Проверка истории
+        testHistory(loadedManager);
+
+        // Проверка удаления
+        testDeletion(loadedManager);
     }
 
-    private static void createAndDisplayTasks(TaskManager taskManager) {
-        System.out.println("\nСоздаем задачи...");
-        Task task1 = new Task("Переезд", "Описание задачи 1");
-        Task task2 = new Task("Переезд2", "Описание задачи 2");
-        taskManager.saveTask(task1);
-        taskManager.saveTask(task2);
+    private static void testInMemoryTaskManager(TaskManager taskManager) {
+        System.out.println("************************************");
+        System.out.println("Тестирование InMemoryTaskManager");
 
-        System.out.println("Все задачи после добавления:");
-        taskManager.getAllTasks().forEach(System.out::println);
+        createAndSaveTasks(taskManager);
+        createAndSaveEpics(taskManager);
+        createAndSaveSubtasks(taskManager);
+
+        // Проверка изменения статуса эпика
+        testEpicStatusChanges(taskManager);
+
+        // Проверка истории
+        testHistory(taskManager);
+
+        // Проверка удаления
+        testDeletion(taskManager);
     }
 
-    private static void createAndDisplayEpics(TaskManager taskManager) {
-        System.out.println("\nСоздаем эпики...");
-        Epic epic1 = new Epic("Эпик1", "Описание эпика 1");
-        Epic epic2 = new Epic("Эпик2", "Описание эпика 2");
-        taskManager.saveEpic(epic1);
-        taskManager.saveEpic(epic2);
+    private static void createAndSaveTasks(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Создание задач...");
 
-        System.out.println("Все эпики после добавления:");
-        taskManager.getAllEpics().forEach(System.out::println);
+        Task task1 = new Task("Задача 1", "Описание задачи 1",
+                Duration.ofMinutes(30), LocalDateTime.now().plusYears(1));
+        Task task2 = new Task("Задача 2", "Описание задачи 2",
+                Duration.ofMinutes(40), LocalDateTime.now());
+        manager.saveTask(task1);
+        manager.saveTask(task2);
+
+        System.out.println("Созданы задачи: ");
+        manager.getAllTasks().forEach(System.out::println);
     }
 
-    private static void createAndDisplaySubtasks(TaskManager taskManager, Epic epic) {
-        System.out.println("\nСоздаем подзадачи...");
-        Subtask subtask1 = new Subtask("Подзадача 1", "Описание подзадачи 1", epic.getId());
-        Subtask subtask2 = new Subtask("Подзадача 2", "Описание подзадачи 2", epic.getId());
+    private static void createAndSaveEpics(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Создание эпиков...");
 
-        taskManager.saveSubtask(subtask1);
-        taskManager.saveSubtask(subtask2);
+        Epic epic1 = new Epic("Эпик 1", "Описание эпика 1",
+                Duration.ZERO, LocalDateTime.now().plusYears(2));
+        Epic epic2 = new Epic("Эпик 2", "Описание эпика 2",
+                Duration.ZERO, LocalDateTime.now().plusYears(1));
+        manager.saveEpic(epic1);
+        manager.saveEpic(epic2);
 
-        System.out.println("Подзадачи для эпика ID " + epic.getId() + ":");
-        taskManager.getAllSubtasksByEpic(epic).forEach(System.out::println);
+        System.out.println("Созданы эпики: ");
+        manager.getAllEpics().forEach(System.out::println);
     }
 
-    private static void checkEpicStatusChanges(TaskManager taskManager, Epic epic) {
-        System.out.println("\nПроверка изменения статуса эпика на основе статусов подзадач...");
+    private static void createAndSaveSubtasks(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Создание подзадач...");
 
-        // Начальный статус эпика
-        System.out.println("Начальный статус эпика: " + epic.getStatus());
+        Epic epic = manager.getAllEpics().getFirst();
+        if (epic != null) {
+            Subtask subtask1 = new Subtask("Подзадача 1", "Описание подзадачи 1",
+                    Duration.ofMinutes(20),
+                    LocalDateTime.now().plusYears(9), epic.getId());
+            Subtask subtask2 = new Subtask("Подзадача 2", "Описание подзадачи 2",
+                    Duration.ofMinutes(50),
+                    LocalDateTime.now().plusYears(3), epic.getId());
+            manager.saveSubtask(subtask1);
+            manager.saveSubtask(subtask2);
 
-        // Получаем подзадачи эпика
-        Subtask subtask1 = taskManager.getAllSubtasksByEpic(epic).get(0);
-        Subtask subtask2 = taskManager.getAllSubtasksByEpic(epic).get(1);
-
-        // Обновляем первую подзадачу на статус IN_PROGRESS и проверяем статус эпика
-        subtask1.setStatus(Status.IN_PROGRESS);
-        taskManager.updateSubtask(subtask1);
-        System.out.println("Статус эпика после обновления первой подзадачи на IN_PROGRESS: " +
-                taskManager.getEpicById(epic.getId()).getStatus());
-
-        // Обновляем обе подзадачи на статус DONE и проверяем статус эпика
-        subtask1.setStatus(Status.DONE);
-        subtask2.setStatus(Status.DONE);
-        taskManager.updateSubtask(subtask1);
-        taskManager.updateSubtask(subtask2);
-        System.out.println("Статус эпика после обновления всех подзадач на DONE: " +
-                taskManager.getEpicById(epic.getId()).getStatus());
+            System.out.println("Созданы подзадачи: ");
+            manager.getAllSubtasks().forEach(System.out::println);
+        }
     }
 
-    private static void viewAndDisplayHistory(TaskManager taskManager) {
-        System.out.println("\nПросматриваем задачи и эпики для истории...");
-        taskManager.getAllTasks().forEach(task -> taskManager.getTaskById(task.getId()));
-        taskManager.getAllEpics().forEach(epic -> taskManager.getEpicById(epic.getId()));
-        taskManager.getTaskById(1);
-        taskManager.getTaskById(1);
+    private static void testEpicStatusChanges(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Тестирование изменения статуса эпика");
+
+        Epic epic = manager.getAllEpics().getFirst();
+        if (epic != null) {
+            System.out.println("Начальный статус эпика: " + epic.getStatus());
+
+            Subtask subtask1 = manager.getAllSubtasksByEpic(epic).get(0);
+            Subtask subtask2 = manager.getAllSubtasksByEpic(epic).get(1);
+
+            subtask1.setStatus(Status.IN_PROGRESS);
+            manager.updateSubtask(subtask1);
+            System.out.println("Статус эпика после изменения первой подзадачи: " + epic.getStatus());
+
+            subtask1.setStatus(Status.DONE);
+            subtask2.setStatus(Status.DONE);
+            manager.updateSubtask(subtask1);
+            manager.updateSubtask(subtask2);
+            System.out.println("Статус эпика после завершения всех подзадач: " + epic.getStatus());
+        }
+    }
+
+    private static void testHistory(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Тестирование истории просмотров");
+
+        manager.getAllTasks().forEach(task -> manager.getTaskById(task.getId()));
+        manager.getAllEpics().forEach(epic -> manager.getEpicById(epic.getId()));
 
         System.out.println("История просмотров:");
-        taskManager.getHistory().forEach(System.out::println);
+        manager.getHistory().forEach(System.out::println);
     }
 
-    private static void updateAndDeleteTasks(TaskManager taskManager) {
-        System.out.println("\nОбновляем задачу и удаляем одну задачу...");
+    private static void testDeletion(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Тестирование удаления задач, эпиков и подзадач");
 
-        Task taskToUpdate = taskManager.getAllTasks().get(1); // Пример использования второй задачи
-        taskToUpdate.setDescription("Обновленное описание задачи 2");
-        taskManager.updateTask(taskToUpdate);
+        manager.deleteAllTasks();
+        manager.deleteAllEpics();
+        manager.deleteAllSubtasks();
 
-        System.out.println("Все задачи после обновления:");
-        taskManager.getAllTasks().forEach(System.out::println);
-
-        Task taskToDelete = taskManager.getAllTasks().getFirst(); // Пример использования первой задачи
-        taskManager.deleteTaskById(taskToDelete.getId());
-
-        System.out.println("Все задачи после удаления:");
-        taskManager.getAllTasks().forEach(System.out::println);
+        System.out.println("Все задачи удалены.");
+        System.out.println("Текущие задачи: " + manager.getAllTasks());
+        System.out.println("Текущие эпики: " + manager.getAllEpics());
+        System.out.println("Текущие подзадачи: " + manager.getAllSubtasks());
     }
 
-    private static void updateAndDeleteSubtasks(TaskManager taskManager, Subtask subtask) {
-        System.out.println("\nОбновляем и удаляем подзадачу...");
+    private static void testTaskSubtaskEpicOverlaps(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Тестирование пересечений задач, подзадач и эпиков");
 
-        subtask.setDescription("Обновленное описание подзадачи 1");
-        subtask.setStatus(Status.IN_PROGRESS);
-        taskManager.updateSubtask(subtask);
+        // Создание и сохранение эпиков
+        Epic epic1 = new Epic("Эпик 1", "Описание эпика 1",
+                Duration.ZERO, LocalDateTime.of(2025, 1, 1, 10, 0));
+        manager.saveEpic(epic1);
 
-        System.out.println("Подзадачи после обновления:");
-        taskManager.getAllSubtasks().forEach(System.out::println);
+        Epic epic2 = new Epic("Эпик 2", "Описание эпика 2",
+                Duration.ZERO, LocalDateTime.of(2025, 1, 1, 12, 0));
+        manager.saveEpic(epic2);
 
-        taskManager.deleteSubtaskById(subtask.getSubtaskId());
-        System.out.println("Подзадачи после удаления:");
-        taskManager.getAllSubtasks().forEach(System.out::println);
-    }
+        // Добавление подзадач
+        Subtask subtask1 = new Subtask("Подзадача 1", "Описание подзадачи 1",
+                Duration.ofHours(2), LocalDateTime.of(2025, 1, 1, 10, 0), epic1.getId());
+        manager.saveSubtask(subtask1);
 
-    private static void updateAndDeleteEpic(TaskManager taskManager, Epic epic) {
-        System.out.println("\nОбновляем и удаляем эпик...");
-
-        epic.setDescription("Обновленное описание эпика 1");
-        taskManager.updateEpic(epic);
-
-        System.out.println("Все эпики после обновления:");
-        taskManager.getAllEpics().forEach(System.out::println);
-
-        // Получение подзадачи для проверки метода getSubtaskById
-        if (!taskManager.getAllSubtasks().isEmpty()) {
-            Subtask subtask = taskManager.getAllSubtasks().getFirst();
-            System.out.println("Получение подзадачи по ID: " + subtask.getSubtaskId());
-            System.out.println(taskManager.getSubtaskById(subtask.getSubtaskId()));
+        Subtask subtask2 = new Subtask("Подзадача 2", "Описание подзадачи 2",
+                Duration.ofHours(1), LocalDateTime.of(2025, 1, 1, 11, 0), epic1.getId());
+        try {
+            manager.saveSubtask(subtask2); // Это должно вызвать исключение
+            System.out.println("Добавлена подзадача 2: " + subtask2);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Ошибка при добавлении подзадачи 2: " + e.getMessage());
         }
 
-        taskManager.deleteEpicById(epic.getId());
-        System.out.println("Все эпики после удаления:");
-        taskManager.getAllEpics().forEach(System.out::println);
+        Subtask subtask3 = new Subtask("Подзадача 3", "Описание подзадачи 3",
+                Duration.ofHours(2), LocalDateTime.of(2025, 1, 1, 12, 0), epic2.getId());
+        manager.saveSubtask(subtask3);
+
+        // Создание и сохранение задач
+        Task task1 = new Task("Задача 1", "Описание задачи 1",
+                Duration.ofHours(3), LocalDateTime.of(2025, 1, 1, 8, 0));
+        manager.saveTask(task1);
+
+        Task task2 = new Task("Задача 2", "Описание задачи 2",
+                Duration.ofHours(2), LocalDateTime.of(2025, 1, 1, 9, 30));
+        try {
+            manager.saveTask(task2); // Это должно вызвать исключение
+            System.out.println("Добавлена задача 2: " + task2);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Ошибка при добавлении задачи 2: " + e.getMessage());
+        }
+
+        Task task3 = new Task("Задача 3", "Описание задачи 3",
+                Duration.ofHours(2), LocalDateTime.of(2025, 1, 1, 15, 0));
+        manager.saveTask(task3);
     }
 
-    private static void deleteAndDisplayAll(TaskManager taskManager) {
-        System.out.println("\nУдаляем все задачи, эпики и подзадачи...");
-        taskManager.deleteAllTasks();
-        taskManager.deleteAllEpics();
-        taskManager.deleteAllSubtasks();
+    private static void testUpdateFunctions(TaskManager manager) {
+        System.out.println("************************************");
+        System.out.println("Тестирование функций обновления задач и эпиков");
 
-        System.out.println("Все задачи после удаления всех:");
-        taskManager.getAllTasks().forEach(System.out::println);
+        // Создание и сохранение задачи
+        Task task = new Task("Обновляемая задача", "Описание задачи",
+                Duration.ofMinutes(60), LocalDateTime.now().plusDays(1));
+        manager.saveTask(task);
 
-        System.out.println("Все эпики после удаления всех:");
-        taskManager.getAllEpics().forEach(System.out::println);
+        System.out.println("Сохраненная задача: " + task);
 
-        System.out.println("Все подзадачи после удаления всех:");
-        taskManager.getAllSubtasks().forEach(System.out::println);
+        // Обновление задачи
+        task.setName("Обновленная задача");
+        task.setDescription("Обновленное описание задачи");
+        manager.updateTask(task);
+
+        System.out.println("Обновленная задача: " + manager.getTaskById(task.getId()));
+
+        // Создание и сохранение эпика
+        Epic epic = new Epic("Обновляемый эпик", "Описание эпика",
+                Duration.ZERO, LocalDateTime.now().plusDays(5));
+        manager.saveEpic(epic);
+
+        System.out.println("Сохраненный эпик: " + epic);
+
+        // Обновление эпика
+        epic.setName("Обновленный эпик");
+        epic.setDescription("Обновленное описание эпика");
+        manager.updateEpic(epic);
+
+        System.out.println("Обновленный эпик: " + manager.getEpicById(epic.getId()));
+
+        System.out.println("************************************");
     }
 }
