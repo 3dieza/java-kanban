@@ -205,4 +205,17 @@ class InMemoryTaskManagerTest {
         List<Task> history = historyManager.getHistory();
         assertEquals(1, history.size());
     }
+
+    @Test
+    void testDeleteNonexistentTask() {
+        taskManager.deleteTaskById(999); // Удаляем задачу с ID, которого нет
+        List<Task> tasks = taskManager.getAllTasks();
+        assertTrue(tasks.isEmpty(), "Список задач должен быть пустым, так как задача с таким ID не существует");
+    }
+
+    @Test
+    void testEmptyTaskList() {
+        List<Task> tasks = taskManager.getAllTasks();
+        assertTrue(tasks.isEmpty(), "Список задач должен быть пустым, если задачи не добавлялись");
+    }
 }

@@ -1,13 +1,14 @@
 package ru.practicum.service;
 
-import org.junit.jupiter.api.Test;
-
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import ru.practicum.model.Task;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryHistoryManagerTest {
     private HistoryManager historyManager;
@@ -61,6 +62,26 @@ class InMemoryHistoryManagerTest {
         historyManager.getHistory();
         historyManager.remove(task1.getId());
         historyManager.remove(task2.getId());
-        assertEquals(1, historyManager.getHistory().size(), "История должна содержать не более 1 элементов");
+        assertEquals(1, historyManager.getHistory().size(),
+                "История должна содержать не более 1 элементов");
+    }
+
+    @Test
+    void testRemoveNonexistentTask() {
+        historyManager.remove(999); // Удаляем задачу с ID, которого нет
+        List<Task> history = historyManager.getHistory();
+        assertTrue(history.isEmpty(), "История должна быть пустой, так как задача с таким ID не существует");
+    }
+
+    @Test
+    void testAddNullTask() {
+        assertThrows(IllegalArgumentException.class,
+                () -> historyManager.add(null), "Добавление null должно вызывать исключение");
+    }
+
+    @Test
+    void testEmptyHistory() {
+        List<Task> history = historyManager.getHistory();
+        assertTrue(history.isEmpty(), "История должна быть пустой, если задачи не добавлялись");
     }
 }

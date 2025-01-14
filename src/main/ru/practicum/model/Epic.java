@@ -5,6 +5,12 @@ import java.util.List;
 import java.util.Objects;
 
 public class Epic extends Task {
+    private int epicId;
+
+    public int getEpicId() {
+        return epicId;
+    }
+
     private List<Subtask> subtasks = new ArrayList<>();
 
     public Epic(String name, String description) {
@@ -20,6 +26,7 @@ public class Epic extends Task {
      */
     public Epic(Epic other) {
         super(other);
+        epicId = other.epicId;
         this.subtasks = new ArrayList<>(other.subtasks);
     }
 
@@ -27,18 +34,19 @@ public class Epic extends Task {
         return subtasks;
     }
 
-    public void setSubtasks(List<Subtask> subtasks) {
-        this.subtasks = subtasks;
-    }
-
     public void addSubtask(Subtask subtask) {
         subtasks.add(subtask);
+    }
+
+    public void setEpicId(int epicId) {
+        this.epicId = epicId;
     }
 
     @Override
     public String toString() {
         return "Epic{" +
-                "subtasks = " + subtasks + ", " +
+                "epicId = " + getEpicId() + ", " +
+                "subtasks = " + getSubtasks() + ", " +
                 "name = " + getName() + ", " +
                 "description = " + getDescription() + ", " +
                 "status = " + getStatus() +

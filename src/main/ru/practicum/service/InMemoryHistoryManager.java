@@ -9,21 +9,32 @@ import java.util.Map;
 
 public class InMemoryHistoryManager implements HistoryManager {
 
-    private final Map<Integer, Node<Task>> hisoryNode = new HashMap<>();
+    private final Map<Integer, Node<Task>> historyNode = new HashMap<>();
     private Node<Task> head;
     private Node<Task> tail;
 
-    private void linkLast(Task element) {
-        if (hisoryNode.containsKey(element.getId())) {
-            removeNode(hisoryNode.get(element.getId()));
+    private void linkLast(Task task) {
+        if (task == null) {
+            throw new IllegalArgumentException("Task cannot be null");
         }
 
+        // Удаляем старую запись, если она существует
+        if (historyNode.containsKey(task.getId())) {
+            removeNode(historyNode.get(task.getId()));
+        }
+
+        // Добавляем новый узел в конец
         final Node<Task> oldTail = tail;
-        final Node<Task> newNode = new Node<>(oldTail, element, null);
+        final Node<Task> newNode = new Node<>(oldTail, task, null);
         tail = newNode;
-        if (oldTail == null) head = newNode;
-        else oldTail.next = newNode;
-        hisoryNode.put(element.getId(), newNode);
+
+        if (oldTail == null) {
+            head = newNode; // Если список пустой
+        } else {
+            oldTail.next = newNode;
+        }
+
+        historyNode.put(task.getId(), newNode);
     }
 
     @Override
@@ -44,30 +55,43 @@ public class InMemoryHistoryManager implements HistoryManager {
 
     private void removeNode(Node<Task> node) {
         if (node == null) return;
+
         final Node<Task> prev = node.prev;
         final Node<Task> next = node.next;
 
-        if (prev == null) head = next;
-        else prev.next = next;
+        // Удаляем ссылки на текущий узел
+        if (prev == null) {
+            head = next; // Если узел первый
+        } else {
+            prev.next = next;
+        }
 
-        if (next == null) tail = prev;
-        else next.prev = prev;
+        if (next == null) {
+            tail = prev; // Если узел последний
+        } else {
+            next.prev = prev;
+        }
 
+        // Удаляем из мапы
+        historyNode.remove(node.element.getId());
+
+        // Обнуляем ссылки узла для GC
         node.next = null;
         node.prev = null;
     }
 
     @Override
     public void remove(int id) {
-        Node<Task> taskNode = hisoryNode.get(id);
-        if (taskNode != null) removeNode(taskNode);
+        Node<Task> taskNode = historyNode.get(id);
+        if (taskNode != null) {
+            removeNode(taskNode);
+        }
     }
 
     static class Node<E> {
         public E element;
         public Node<E> next;
         public Node<E> prev;
-
 
         public Node(Node<E> prev, E element, Node<E> next) {
             this.prev = prev;
