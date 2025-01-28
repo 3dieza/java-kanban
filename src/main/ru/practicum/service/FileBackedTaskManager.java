@@ -12,22 +12,32 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-public class FileBackedTaskManager extends InMemoryTaskManager implements TaskManager {
+public class FileBackedTaskManager extends InMemoryTaskManager {
+
     private final File file;
+    private boolean isLoading = false;
 
     /**
-     * Конструктор инициализирует новый FileBackedTaskManager, который получает файл для автосохранения
-     * в своём конструкторе и сохраняет его в поле.
+     * Конструктор инициализирует новый FileBackedTaskManager с файлом для автосохранения.
+     *
+     * @param file файл для сохранения данных
      */
     public FileBackedTaskManager(File file) {
         super(new InMemoryHistoryManager());
         this.file = file;
     }
 
+    /**
+     * Сохранение данных в файл.
+     */
     private void save() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, false))) {
-            writer.write("id,type,name,status,description,epic\n");
+            writer.write("id,type,name,status,description,epic,startTime,duration,epicId\n");
 
             for (Task task : getAllTasks()) {
                 writer.write(taskToString(task));
@@ -43,65 +53,113 @@ public class FileBackedTaskManager extends InMemoryTaskManager implements TaskMa
         }
     }
 
+    /**
+     * Преобразование задачи в строку для записи в файл.
+     */
     private String taskToString(Task task) {
         if (task instanceof Subtask subtask) {
-            return String.format("%d,SUBTASK,%s,%s,%s,%d\n",
+            return String.format("%d,SUBTASK,%s,%s,%s,%s,%s,%d\n",
                     subtask.getSubtaskId(),
                     subtask.getName(),
                     subtask.getStatus(),
                     subtask.getDescription(),
+                    subtask.getStartTime(),
+                    subtask.getDuration(),
                     subtask.getEpicId());
         } else if (task instanceof Epic epic) {
-            return String.format("%d,EPIC,%s,%s,%s\n",
+            return String.format("%d,EPIC,%s,%s,%s,%s,%s\n",
                     epic.getId(),
                     epic.getName(),
                     epic.getStatus(),
-                    epic.getDescription());
+                    epic.getDescription(),
+                    epic.getStartTime(),
+                    epic.getDuration());
         }
 
-        return String.format("%d,TASK,%s,%s,%s\n",
+        return String.format("%d,TASK,%s,%s,%s,%s,%s\n",
                 task.getId(),
                 task.getName(),
                 task.getStatus(),
-                task.getDescription());
+                task.getDescription(),
+                task.getStartTime(),
+                task.getDuration());
     }
 
+    /**
+     * Загрузка задач из файла.
+     *
+     * @param file файл с сохранёнными данными
+     * @return объект FileBackedTaskManager с загруженными данными
+     */
     public static FileBackedTaskManager loadFromFile(File file) {
-        FileBackedTaskManager fileBackedTaskManager = new FileBackedTaskManager(file);
+        FileBackedTaskManager manager = new FileBackedTaskManager(file);
+
         if (!file.exists() || file.length() == 0) {
-            // Возвращаем пустой менеджер, если файл не существует или пуст
-            return fileBackedTaskManager;
+            return manager; // Пустой файл
         }
 
+        manager.isLoading = true;
+
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String headers = reader.readLine(); // Пропускаем заголовок
-            if (headers == null || headers.isBlank()) {
-                return fileBackedTaskManager; // Пустой файл
+            reader.readLine(); // Пропускаем заголовок
+
+            List<String> subtasksToLoad = new ArrayList<>();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) continue;
+
+                try {
+                    String[] fields = line.split(",");
+                    if (fields.length < 7) {
+                        throw new IllegalArgumentException("Некорректный формат строки: недостаточно данных");
+                    }
+
+                    String type = fields[1];
+
+                    switch (type) {
+                        case "TASK" -> {
+                            Task task = parseTask(line);
+                            manager.saveTask(task);
+                        }
+                        case "EPIC" -> {
+                            Epic epic = (Epic) parseTask(line);
+                            manager.saveEpic(epic);
+                        }
+                        case "SUBTASK" -> subtasksToLoad.add(line); // Сохраняем подзадачи для загрузки позже
+                        default -> throw new IllegalArgumentException("Неизвестный тип задачи: " + type);
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new ManagerSaveException("Ошибка при разборе строки: " + line, e);
+                }
             }
 
-            String line = reader.readLine();
-            while (line != null) {
-                if (line.isBlank()) {
-                    line = reader.readLine();
-                    continue;
+            // Загружаем подзадачи
+            for (String subtaskLine : subtasksToLoad) {
+                try {
+                    Subtask subtask = (Subtask) parseTask(subtaskLine);
+                    manager.saveSubtask(subtask);
+                } catch (IllegalArgumentException e) {
+                    throw new ManagerSaveException("Ошибка при разборе подзадачи: " + subtaskLine, e);
                 }
+            }
 
-                Task task = parseTask(line);
-                if (task instanceof Subtask subtask) {
-                    fileBackedTaskManager.saveSubtask(subtask);
-                } else if (task instanceof Epic epic) {
-                    fileBackedTaskManager.saveEpic(epic);
-                } else {
-                    fileBackedTaskManager.saveTask(task);
-                }
-                line = reader.readLine();
+            // Пересчёт времени для всех эпиков
+            for (Epic epic : manager.getAllEpics()) {
+                manager.updateEpicTime(epic);
             }
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка при загрузке файла", e);
+        } finally {
+            manager.isLoading = false;
         }
-        return fileBackedTaskManager;
+
+        return manager;
     }
 
+    /**
+     * Разбор строки задачи из файла.
+     */
     private static Task parseTask(String line) {
         if (line == null || line.isBlank()) {
             throw new IllegalArgumentException("Некорректный формат строки: " + line);
@@ -117,26 +175,28 @@ public class FileBackedTaskManager extends InMemoryTaskManager implements TaskMa
         String name = fields[2];
         Status status = Status.valueOf(fields[3]);
         String description = fields[4];
+        LocalDateTime startTime = fields[5].equals("null") ? null : LocalDateTime.parse(fields[5]);
+        Duration duration = fields[6].equals("null") ? Duration.ZERO : Duration.parse(fields[6]);
 
         return switch (type) {
             case "TASK" -> {
-                Task task = new Task(name, description);
+                Task task = new Task(name, description, duration, startTime);
                 task.setId(id);
                 task.setStatus(status);
                 yield task;
             }
             case "EPIC" -> {
-                Epic epic = new Epic(name, description);
+                Epic epic = new Epic(name, description, duration, startTime);
                 epic.setId(id);
                 epic.setStatus(status);
                 yield epic;
             }
             case "SUBTASK" -> {
-                if (fields.length < 6) {
+                if (fields.length < 8) {
                     throw new IllegalArgumentException("Подзадача должна содержать ID эпика: " + line);
                 }
-                int epicId = Integer.parseInt(fields[5]);
-                Subtask subtask = new Subtask(name, description, epicId);
+                int epicId = Integer.parseInt(fields[7]);
+                Subtask subtask = new Subtask(name, description, duration, startTime, epicId);
                 subtask.setSubtaskId(id);
                 subtask.setStatus(status);
                 yield subtask;
@@ -148,36 +208,36 @@ public class FileBackedTaskManager extends InMemoryTaskManager implements TaskMa
     @Override
     public void saveTask(Task task) {
         super.saveTask(task);
-        save();
+        if (!isLoading) save();
     }
 
     @Override
     public void saveEpic(Epic epic) {
         super.saveEpic(epic);
-        save();
+        if (!isLoading) save();
     }
 
     @Override
     public void saveSubtask(Subtask subtask) {
         super.saveSubtask(subtask);
-        save();
+        if (!isLoading) save();
     }
 
     @Override
     public void deleteTaskById(int id) {
         super.deleteTaskById(id);
-        save();
+        if (!isLoading) save();
     }
 
     @Override
     public void deleteEpicById(int id) {
         super.deleteEpicById(id);
-        save();
+        if (!isLoading) save();
     }
 
     @Override
     public void deleteSubtaskById(int id) {
         super.deleteSubtaskById(id);
-        save();
+        if (!isLoading) save();
     }
 }

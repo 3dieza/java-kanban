@@ -3,27 +3,32 @@ package ru.practicum.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.practicum.model.Epic;
+import ru.practicum.model.Status;
 import ru.practicum.model.Subtask;
 import ru.practicum.model.Task;
 
-import java.util.List;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class InMemoryTaskManagerTest {
-    private InMemoryTaskManager taskManager;
-    private HistoryManager historyManager;
+class InMemoryTaskManagerTest extends TaskManagerTest<InMemoryTaskManager> {
+
+    @Override
+    InMemoryTaskManager createTaskManager() {
+        return new InMemoryTaskManager(new InMemoryHistoryManager());
+    }
 
     @BeforeEach
     void setUp() {
-        historyManager = new InMemoryHistoryManager();
+        HistoryManager historyManager = new InMemoryHistoryManager();
         taskManager = new InMemoryTaskManager(historyManager);
     }
 
     @Test
     void testTasksEqualityById() {
-        Task task1 = new Task("Задача", "Описание");
-        Task task2 = new Task("Задача", "Описание");
+        Task task1 = new Task("Task", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0));
+        Task task2 = new Task("Task", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0));
         task1.setId(1);
         task2.setId(1);
         assertEquals(task1, task2, "Задачи с одинаковым ID должны быть равны");
@@ -31,38 +36,34 @@ class InMemoryTaskManagerTest {
 
     @Test
     void testSubtasksEqualityById() {
-        Epic epic = new Epic("Эпик", "Описание");
+        Epic epic = new Epic("Epic", "Description", Duration.ZERO, null);
         taskManager.saveEpic(epic);
 
-        Subtask subtask1 = new Subtask("Подзадача", "Описание", epic.getId());
-        Subtask subtask2 = new Subtask("Подзадача", "Описание", epic.getId());
+        Subtask subtask1 = new Subtask("Subtask", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0), epic.getId());
+        Subtask subtask2 = new Subtask("Subtask", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0), epic.getId());
         subtask1.setSubtaskId(1);
         subtask2.setSubtaskId(1);
-        assertEquals(subtask1, subtask2,
-                "Подзадачи с одинаковым ID должны быть равны");
+        assertEquals(subtask1, subtask2, "Подзадачи с одинаковым ID должны быть равны");
     }
 
     @Test
     void testPreventEpicSelfSubtask() {
-        Epic epic = new Epic("Эпик", "Описание");
+        Epic epic = new Epic("Epic", "Description", Duration.ZERO, null);
         taskManager.saveEpic(epic);
 
-        Subtask subtask = new Subtask("Подзадача", "Описание", epic.getId());
+        Subtask subtask = new Subtask("Subtask", "Description", Duration.ZERO, null, epic.getId());
         subtask.setSubtaskId(epic.getId());
         taskManager.saveSubtask(subtask);
 
-        assertNotEquals(epic.getId(), subtask.getSubtaskId(),
-                "Эпик не должен быть подзадачей самого себя");
+        assertNotEquals(epic.getId(), subtask.getSubtaskId(), "Эпик не должен быть подзадачей самого себя");
     }
 
     @Test
     void testPreventSubtaskBeingItsOwnEpic() {
-        Subtask subtask = new Subtask("Подзадача", "Описание", 1);
-        subtask.setId(1);  // Устанавливаем ID подзадачи
+        Subtask subtask = new Subtask("Subtask", "Description", Duration.ZERO, null, 1);
+        subtask.setId(1);
 
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
-            subtask.setEpicId(1);  // Попытка установить epicId равным ID подзадачи
-        });
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> subtask.setEpicId(1));
 
         assertEquals("Подзадача не может ссылаться на свой же эпик.", thrown.getMessage());
     }
@@ -80,142 +81,81 @@ class InMemoryTaskManagerTest {
 
     @Test
     void testSaveAndRetrieveTasksById() {
-        Task task = new Task("Задача", "Описание");
-        Task task2 = new Task("Задача2", "Описание2");
-        Task task3 = new Task("Задача3", "Описание3");
-
-
+        Task task = new Task("Task", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0));
         taskManager.saveTask(task);
-        taskManager.saveTask(task2);
-        taskManager.saveTask(task3);
-
-        task.setId(1);
-        task2.setId(2);
-        task3.setId(2);
 
         Task retrievedTask = taskManager.getTaskById(task.getId());
-        Task retrievedTask2 = taskManager.getTaskById(task2.getId());
-        Task retrievedTask3 = taskManager.getTaskById(task3.getId());
         assertEquals(task, retrievedTask, "Задача должна быть доступна по ID");
-        assertEquals(task2, retrievedTask2, "Задача должна быть доступна по ID");
-        assertEquals(task3, retrievedTask3, "Задача должна быть доступна по ID");
-
-        assertEquals(2, historyManager.getHistory().size());
     }
 
     @Test
     void testGeneratedAndSpecifiedIdTasksConflict() {
-        Task generatedTask = new Task("Генерируемая задача", "Описание");
+        Task generatedTask = new Task("Generated Task", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0));
         taskManager.saveTask(generatedTask);
 
-        Task specifiedTask = new Task("Задача с ID", "Описание");
+        Task specifiedTask = new Task("Specified Task", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0));
         specifiedTask.setId(generatedTask.getId());
         taskManager.saveTask(specifiedTask);
 
-        assertNotEquals(generatedTask, specifiedTask,
-                "Задачи с разными ID не должны конфликтовать");
+        assertNotEquals(generatedTask, specifiedTask, "Задачи с разными ID не должны конфликтовать");
     }
 
     @Test
-    void testTaskFieldsImmutability() {
-        Task task = new Task("Исходная задача", "Описание");
-        taskManager.saveTask(task);
+    void testEpicStatusCalculation() {
+        Epic epic = new Epic("Epic Test", "Description", Duration.ZERO, null);
+        taskManager.saveEpic(epic);
 
-        Task storedTask = taskManager.getTaskById(task.getId());
-        storedTask.setName("Измененное имя");
+        // Создание подзадач
+        Subtask subtask1 = new Subtask("Subtask 1", "Description", Duration.ZERO, null, epic.getId());
+        Subtask subtask2 = new Subtask("Subtask 2", "Description", Duration.ZERO, null, epic.getId());
+        taskManager.saveSubtask(subtask1);
+        taskManager.saveSubtask(subtask2);
 
-        Task reFetchedTask = taskManager.getTaskById(task.getId());
-        assertEquals("Исходная задача", reFetchedTask.getName(),
-                "Имя задачи должно оставаться неизменным после изменения в другой ссылке");
+        // Граничное условие a: Все подзадачи со статусом NEW
+        assertEquals(Status.NEW, epic.getStatus(), "Все подзадачи NEW - статус эпика должен быть NEW");
+
+        // Граничное условие b: Все подзадачи со статусом DONE
+        subtask1.setStatus(Status.DONE);
+        subtask2.setStatus(Status.DONE);
+        taskManager.updateSubtask(subtask1);
+        taskManager.updateSubtask(subtask2);
+        assertEquals(Status.DONE, epic.getStatus(), "Все подзадачи DONE - статус эпика должен быть DONE");
+
+        // Граничное условие c: Подзадачи со статусами NEW и DONE
+        subtask1.setStatus(Status.NEW);
+        taskManager.updateSubtask(subtask1);
+        assertEquals(Status.IN_PROGRESS, epic.getStatus(), "Подзадачи со статусами NEW и DONE - статус эпика должен быть IN_PROGRESS");
+
+        // Граничное условие d: Подзадачи со статусом IN_PROGRESS
+        subtask1.setStatus(Status.IN_PROGRESS);
+        subtask2.setStatus(Status.IN_PROGRESS);
+        taskManager.updateSubtask(subtask1);
+        taskManager.updateSubtask(subtask2);
+        assertEquals(Status.IN_PROGRESS, epic.getStatus(), "Все подзадачи IN_PROGRESS - статус эпика должен быть IN_PROGRESS");
     }
 
     @Test
-    void testHistoryAddAndPreserveOriginalTaskData() {
-        Task task = new Task("Задача в истории", "Описание");
-        taskManager.saveTask(task);
+    void testTaskIntervalsOverlap() {
+        // Создаем задачу с заданным интервалом
+        Task task1 = new Task("Task 1", "Description", Duration.ofHours(1), LocalDateTime.now());
+        taskManager.saveTask(task1);
 
-        taskManager.getTaskById(task.getId());
-        task.setDescription("Новое описание");
+        // Создаем пересекающуюся задачу
+        Task task2 = new Task("Task 2", "Description", Duration.ofHours(1), task1.getStartTime().plusMinutes(30));
 
-        List<Task> history = taskManager.getHistory();
-        assertEquals(1, history.size(), "История должна содержать одну задачу");
-        assertEquals("Описание", history.getFirst().getDescription(),
-                "Оригинальное описание задачи должно сохраниться в истории");
-    }
+        // Проверяем, что сохранение вызывает исключение
+        assertThrows(IllegalArgumentException.class, () -> taskManager.saveTask(task2),
+                "Пересекающиеся задачи не должны сохраняться.");
 
-    @Test
-    void testAddNewTask() {
-        Task task = new Task("Тестовая задача", "Описание задачи");
-        taskManager.saveTask(task);
+        // Проверка подзадач
+        Epic epic = new Epic("Epic", "Description", Duration.ZERO, null);
+        taskManager.saveEpic(epic);
 
-        Task savedTask = taskManager.getTaskById(task.getId());
-        assertNotNull(savedTask, "Задача не найдена");
-        assertEquals(task, savedTask, "Сохраненная и полученная задачи должны совпадать");
+        Subtask subtask1 = new Subtask("Subtask 1", "Description", Duration.ofHours(2), LocalDateTime.now(), epic.getId());
+        taskManager.saveSubtask(subtask1);
 
-        List<Task> tasks = taskManager.getAllTasks();
-        assertNotNull(tasks, "Задачи не возвращаются");
-        assertEquals(1, tasks.size(), "Неверное количество задач");
-        assertEquals(task, tasks.getFirst(), "Задачи не совпадают");
-    }
-
-    @Test
-    void testHistoryAddFunctionality() {
-        Task task = new Task("Задача для истории", "Описание");
-        Task task2 = new Task("Задача для истории2", "Описание2");
-        taskManager.saveTask(task);
-        taskManager.saveTask(task2);
-
-        taskManager.getTaskById(task.getId());
-        taskManager.getTaskById(task2.getId());
-
-        List<Task> history = historyManager.getHistory();
-
-        assertNotNull(history, "История должна быть не пустой");
-        assertEquals(2, history.size(), "История должна содержать одну задачу");
-        assertEquals(task, history.getFirst(), "Задача в истории должна совпадать с добавленной");
-    }
-
-    @Test
-    void deleteAllTasks() {
-        Task task = new Task("Задача для истории", "Описание");
-        Task task2 = new Task("Задача для истории2", "Описание2");
-        taskManager.saveTask(task);
-        taskManager.saveTask(task2);
-
-        historyManager.add(task);
-        historyManager.add(task2);
-
-        taskManager.deleteAllTasks();
-        List<Task> history = historyManager.getHistory();
-        assertTrue(history.isEmpty());
-        assertTrue(taskManager.getAllTasks().isEmpty());
-    }
-
-    @Test
-    void deleteByIdTaskAndHistory() {
-        Task task = new Task("Задача для истории", "Описание");
-        Task task2 = new Task("Задача для истории2", "Описание2");
-        taskManager.saveTask(task);
-        taskManager.saveTask(task2);
-
-        historyManager.add(task);
-        historyManager.add(task2);
-
-        taskManager.deleteTaskById(task.getId());
-        List<Task> history = historyManager.getHistory();
-        assertEquals(1, history.size());
-    }
-
-    @Test
-    void testDeleteNonexistentTask() {
-        taskManager.deleteTaskById(999); // Удаляем задачу с ID, которого нет
-        List<Task> tasks = taskManager.getAllTasks();
-        assertTrue(tasks.isEmpty(), "Список задач должен быть пустым, так как задача с таким ID не существует");
-    }
-
-    @Test
-    void testEmptyTaskList() {
-        List<Task> tasks = taskManager.getAllTasks();
-        assertTrue(tasks.isEmpty(), "Список задач должен быть пустым, если задачи не добавлялись");
+        Subtask subtask2 = new Subtask("Subtask 2", "Description", Duration.ofHours(1), subtask1.getStartTime().plusMinutes(30), epic.getId());
+        assertThrows(IllegalArgumentException.class, () -> taskManager.saveSubtask(subtask2),
+                "Пересекающиеся подзадачи не должны сохраняться.");
     }
 }

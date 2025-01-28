@@ -1,20 +1,19 @@
 package ru.practicum.model;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class Epic extends Task {
+
     private int epicId;
-
-    public int getEpicId() {
-        return epicId;
-    }
-
+    private LocalDateTime endTime;
     private List<Subtask> subtasks = new ArrayList<>();
 
-    public Epic(String name, String description) {
-        super(name, description);
+    public Epic(String name, String description, Duration duration, LocalDateTime startTime) {
+        super(name, description, duration, startTime);
         setStatus(Status.NEW);
     }
 
@@ -26,8 +25,13 @@ public class Epic extends Task {
      */
     public Epic(Epic other) {
         super(other);
-        epicId = other.epicId;
+        this.epicId = other.epicId;
         this.subtasks = new ArrayList<>(other.subtasks);
+        this.endTime = other.endTime;
+    }
+
+    public void setEpicId(int epicId) {
+        this.epicId = epicId;
     }
 
     public List<Subtask> getSubtasks() {
@@ -36,20 +40,34 @@ public class Epic extends Task {
 
     public void addSubtask(Subtask subtask) {
         subtasks.add(subtask);
+        recalculateFields();
     }
 
-    public void setEpicId(int epicId) {
-        this.epicId = epicId;
+    private void recalculateFields() {
+        subtasks.stream()
+                .map(Subtask::getStartTime)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .ifPresent(this::setStartTime);
+
+        Duration totalDuration = subtasks.stream()
+                .map(Subtask::getDuration)
+                .filter(Objects::nonNull)
+                .reduce(Duration.ZERO, Duration::plus);
+
+        setDuration(totalDuration);
     }
 
     @Override
     public String toString() {
         return "Epic{" +
-                "epicId = " + getEpicId() + ", " +
-                "subtasks = " + getSubtasks() + ", " +
-                "name = " + getName() + ", " +
-                "description = " + getDescription() + ", " +
-                "status = " + getStatus() +
+                "epicId=" + epicId +
+                ", subtasks=" + subtasks +
+                ", name='" + getName() + '\'' +
+                ", description='" + getDescription() + '\'' +
+                ", status=" + getStatus() +
+                ", duration=" + getDuration() +
+                ", startTime=" + getStartTime() +
                 '}';
     }
 
@@ -59,11 +77,11 @@ public class Epic extends Task {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Epic epic = (Epic) o;
-        return Objects.equals(getSubtasks(), epic.getSubtasks());
+        return epicId == epic.epicId && Objects.equals(subtasks, epic.subtasks);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), getSubtasks());
+        return Objects.hash(super.hashCode(), epicId, subtasks);
     }
 }

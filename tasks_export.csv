@@ -1,4 +1,13 @@
-id,type,name,status,description,epic
-1,TASK,Task 777,NEW,Description 777
-2,EPIC,Epic 777,NEW,Description for Epic 777
-3,SUBTASK,Subtask 777,NEW,Description for Subtask 777,2
+id,type,name,status,description,epic,startTime,duration,epicId
+11,TASK,Задача 1,NEW,Описание задачи 1,2025-01-01T08:00,PT3H
+12,TASK,Задача 3,NEW,Описание задачи 3,2025-01-01T15:00,PT2H
+2,TASK,Задача 2,NEW,Описание задачи 2,2025-01-16T00:36:16.279398,PT40M
+1,TASK,Задача 1,NEW,Описание задачи 1,2026-01-16T00:36:16.279204,PT30M
+3,EPIC,Эпик 1,NEW,Описание эпика 1,2028-01-16T00:36:16.297139,PT1H10M
+4,EPIC,Эпик 2,NEW,Описание эпика 2,null,null
+7,EPIC,Эпик 1,NEW,Описание эпика 1,2025-01-01T10:00,PT2H
+8,EPIC,Эпик 2,NEW,Описание эпика 2,2025-01-01T12:00,PT2H
+9,SUBTASK,Подзадача 1,NEW,Описание подзадачи 1,2025-01-01T10:00,PT2H,7
+10,SUBTASK,Подзадача 3,NEW,Описание подзадачи 3,2025-01-01T12:00,PT2H,8
+6,SUBTASK,Подзадача 2,NEW,Описание подзадачи 2,2028-01-16T00:36:16.297139,PT50M,3
+5,SUBTASK,Подзадача 1,NEW,Описание подзадачи 1,2034-01-16T00:36:16.297125,PT20M,3
