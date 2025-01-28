@@ -1,3 +1,4 @@
+
 package ru.practicum.model;
 
 import java.time.Duration;
@@ -8,7 +9,6 @@ import java.util.Objects;
 
 public class Epic extends Task {
 
-    private int epicId;
     private LocalDateTime endTime;
     private List<Subtask> subtasks = new ArrayList<>();
 
@@ -25,13 +25,8 @@ public class Epic extends Task {
      */
     public Epic(Epic other) {
         super(other);
-        this.epicId = other.epicId;
         this.subtasks = new ArrayList<>(other.subtasks);
         this.endTime = other.endTime;
-    }
-
-    public void setEpicId(int epicId) {
-        this.epicId = epicId;
     }
 
     public List<Subtask> getSubtasks() {
@@ -41,6 +36,16 @@ public class Epic extends Task {
     public void addSubtask(Subtask subtask) {
         subtasks.add(subtask);
         recalculateFields();
+    }
+
+    @Override
+    public Integer getId() {
+        return super.getId();
+    }
+
+    @Override
+    public void setId(Integer id) {
+        super.setId(id);
     }
 
     private void recalculateFields() {
@@ -61,7 +66,7 @@ public class Epic extends Task {
     @Override
     public String toString() {
         return "Epic{" +
-                "epicId=" + epicId +
+                "id=" + getId() +
                 ", subtasks=" + subtasks +
                 ", name='" + getName() + '\'' +
                 ", description='" + getDescription() + '\'' +
@@ -77,11 +82,15 @@ public class Epic extends Task {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Epic epic = (Epic) o;
-        return epicId == epic.epicId && Objects.equals(subtasks, epic.subtasks);
+        return Objects.equals(subtasks, epic.subtasks);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), epicId, subtasks);
+        return Objects.hash(super.hashCode(), subtasks);
+    }
+
+    public void setSubtasks(List<Subtask> subtasks) {
+        this.subtasks = subtasks;
     }
 }

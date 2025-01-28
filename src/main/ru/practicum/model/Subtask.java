@@ -5,60 +5,39 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Subtask extends Task {
-    private int epicId;
-    private int subtaskId;
+    private Integer epicId;
 
-    public Subtask(String name, String description, Duration duration, LocalDateTime startTime, int epicId) {
+    public Subtask(String name, String description, Duration duration, LocalDateTime startTime, Integer epicId) {
         super(name, description, duration, startTime);
-        setEpicId(epicId);
+        this.epicId = epicId;
     }
 
-    /**
-     * Копирующий конструктор для создания нового экземпляра Subtask на основе другого Subtask.
-     * Копирует все данные задачи и сохраняет идентификатор связанного эпика.
-     *
-     * @param other другой объект Subtask, данные которого нужно скопировать
-     */
     public Subtask(Subtask other) {
         super(other);
-        subtaskId = other.subtaskId;
         this.epicId = other.epicId;
     }
 
-    public Subtask(int subtaskId, String name, String description, Duration duration, LocalDateTime startTime, int epicId) {
-        super(name, description, duration, startTime);
-        this.epicId = epicId;
-        this.subtaskId = subtaskId;
-    }
-
-    public int getEpicId() {
+    public Integer getEpicId() {
         return epicId;
     }
 
-    public void setEpicId(int epicId) {
-        if (epicId == this.getId()) {
+    public void setEpicId(Integer epicId) {
+        if (Objects.equals(this.getId(), epicId)) {
             throw new IllegalArgumentException("Подзадача не может ссылаться на свой же эпик.");
         }
         this.epicId = epicId;
     }
 
-    public int getSubtaskId() {
-        return subtaskId;
-    }
-
-    public void setSubtaskId(int subtaskId) {
-        this.subtaskId = subtaskId;
-    }
-
     @Override
     public String toString() {
-        return "Subtask{subtaskId = " + getId() +
-                ", name = " + getName() +
-                ", description = '" + getDescription() + '\'' +
-                ", epicId = " + getEpicId() +
-                ", status = " + getStatus() +
-                ", startTime = " + getStartTime() +
-                ", duration = " + getDuration() +
+        return "Subtask{" +
+                "id=" + getId() +
+                ", name='" + getName() + '\'' +
+                ", description='" + getDescription() + '\'' +
+                ", status=" + getStatus() +
+                ", duration=" + getDuration() +
+                ", startTime=" + getStartTime() +
+                ", epicId=" + epicId +
                 '}';
     }
 
@@ -68,11 +47,11 @@ public class Subtask extends Task {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Subtask subtask = (Subtask) o;
-        return getEpicId() == subtask.getEpicId() && getSubtaskId() == subtask.getSubtaskId();
+        return Objects.equals(epicId, subtask.epicId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), getEpicId(), getSubtaskId());
+        return Objects.hash(super.hashCode(), epicId);
     }
 }
