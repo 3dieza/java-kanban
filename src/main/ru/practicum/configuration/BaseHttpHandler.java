@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 public abstract class BaseHttpHandler implements HttpHandler {
     protected final TaskManager taskManager;
     protected final Gson gson;
+    protected static final String HEADER_CONTENT_TYPE = "Content-Type";
+    protected static final String MIME_APPLICATION_JSON_UTF8 = "application/json;charset=utf-8";
 
     public BaseHttpHandler(TaskManager taskManager, Gson gson) {
         this.taskManager = taskManager;
@@ -28,7 +30,7 @@ public abstract class BaseHttpHandler implements HttpHandler {
      */
     protected void sendText(HttpExchange exchange, String text, int status) throws IOException {
         byte[] resp = text.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "application/json;charset=utf-8");
+        exchange.getResponseHeaders().add(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8);
         exchange.sendResponseHeaders(status, resp.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(resp);

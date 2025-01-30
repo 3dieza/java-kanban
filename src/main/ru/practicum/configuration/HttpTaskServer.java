@@ -1,16 +1,14 @@
 package ru.practicum.configuration;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpServer;
 import ru.practicum.service.FileBackedTaskManager;
+import ru.practicum.service.Managers;
 import ru.practicum.service.TaskManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 public class HttpTaskServer {
     private static final int PORT = 8080;
@@ -21,10 +19,7 @@ public class HttpTaskServer {
     public HttpTaskServer(TaskManager taskManager) throws IOException {
         this.server = HttpServer.create(new InetSocketAddress(PORT), 0);
         this.taskManager = taskManager;
-        this.gson = new GsonBuilder()
-                .registerTypeAdapter(Duration.class, new DurationTypeAdapter())
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter())
-                .create();
+        this.gson = Managers.getDefaultGson();
         initContext();
     }
 

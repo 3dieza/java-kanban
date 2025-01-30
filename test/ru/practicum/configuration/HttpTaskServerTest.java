@@ -1,6 +1,5 @@
 package ru.practicum.configuration;
 
-import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.net.URI;
@@ -11,6 +10,7 @@ import com.google.gson.Gson;
 
 import ru.practicum.service.InMemoryHistoryManager;
 import ru.practicum.service.InMemoryTaskManager;
+import ru.practicum.service.Managers;
 import ru.practicum.service.TaskManager;
 import ru.practicum.model.Task;
 
@@ -24,6 +24,8 @@ public class HttpTaskServerTest {
     private HttpTaskServer taskServer;
     private Gson gson;
     private HttpClient client;
+    protected static final String HEADER_CONTENT_TYPE = "Content-Type";
+    protected static final String MIME_APPLICATION_JSON_UTF8 = "application/json;charset=utf-8";
 
     @BeforeEach
     public void setUp() throws IOException {
@@ -31,11 +33,7 @@ public class HttpTaskServerTest {
         taskServer = new HttpTaskServer(manager);
         taskServer.start();
         client = HttpClient.newHttpClient();
-
-        gson = new GsonBuilder()
-                .registerTypeAdapter(Duration.class, new DurationTypeAdapter()) // Регистрация адаптера
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter()) // Если используется LocalDateTime
-                .create();
+        this.gson = Managers.getDefaultGson();
     }
 
     @AfterEach
@@ -51,7 +49,7 @@ public class HttpTaskServerTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/tasks"))
                 .POST(HttpRequest.BodyPublishers.ofString(taskJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -69,7 +67,7 @@ public class HttpTaskServerTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/tasks"))
                 .GET()
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -86,7 +84,7 @@ public class HttpTaskServerTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/tasks/1"))
                 .DELETE()
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

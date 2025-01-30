@@ -8,6 +8,9 @@ import ru.practicum.service.TaskManager;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import static ru.practicum.configuration.BaseHttpHandler.HEADER_CONTENT_TYPE;
+import static ru.practicum.configuration.BaseHttpHandler.MIME_APPLICATION_JSON_UTF8;
+
 public class HistoryHandler implements HttpHandler {
     private final TaskManager taskManager;
     private final Gson gson;
@@ -41,7 +44,7 @@ public class HistoryHandler implements HttpHandler {
      */
     private void sendText(HttpExchange exchange, String response, int statusCode) throws IOException {
         byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
+        exchange.getResponseHeaders().add(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8);
         exchange.sendResponseHeaders(statusCode, responseBytes.length);
         exchange.getResponseBody().write(responseBytes);
         exchange.getResponseBody().close();

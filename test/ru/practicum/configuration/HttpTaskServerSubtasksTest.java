@@ -1,12 +1,12 @@
 package ru.practicum.configuration;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.*;
 import ru.practicum.model.Epic;
 import ru.practicum.model.Subtask;
 import ru.practicum.service.InMemoryHistoryManager;
 import ru.practicum.service.InMemoryTaskManager;
+import ru.practicum.service.Managers;
 import ru.practicum.service.TaskManager;
 
 import java.io.IOException;
@@ -14,11 +14,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static ru.practicum.configuration.HttpTaskServerTest.HEADER_CONTENT_TYPE;
+import static ru.practicum.configuration.HttpTaskServerTest.MIME_APPLICATION_JSON_UTF8;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -35,11 +36,7 @@ public class HttpTaskServerSubtasksTest {
         taskServer = new HttpTaskServer(manager);
         taskServer.start();
         client = HttpClient.newHttpClient();
-
-        gson = new GsonBuilder()
-                .registerTypeAdapter(Duration.class, new DurationTypeAdapter())
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter())
-                .create();
+        this.gson = Managers.getDefaultGson();
     }
 
     @AfterAll
@@ -69,7 +66,7 @@ public class HttpTaskServerSubtasksTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/epics"))
                 .POST(HttpRequest.BodyPublishers.ofString(epicJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -94,7 +91,7 @@ public class HttpTaskServerSubtasksTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/subtasks"))
                 .POST(HttpRequest.BodyPublishers.ofString(subtaskJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -121,7 +118,7 @@ public class HttpTaskServerSubtasksTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/subtasks"))
                 .POST(HttpRequest.BodyPublishers.ofString(subtaskJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -187,7 +184,7 @@ public class HttpTaskServerSubtasksTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/subtasks"))
                 .POST(HttpRequest.BodyPublishers.ofString(updatedSubtaskJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -245,7 +242,7 @@ public class HttpTaskServerSubtasksTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/subtasks"))
                 .POST(HttpRequest.BodyPublishers.ofString(overlappingSubtaskJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

@@ -1,7 +1,6 @@
 package ru.practicum.configuration;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import ru.practicum.model.Task;
 import ru.practicum.service.InMemoryHistoryManager;
 import ru.practicum.service.InMemoryTaskManager;
+import ru.practicum.service.Managers;
 import ru.practicum.service.TaskManager;
 
 import java.io.IOException;
@@ -20,12 +20,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static ru.practicum.configuration.HttpTaskServerTest.HEADER_CONTENT_TYPE;
+import static ru.practicum.configuration.HttpTaskServerTest.MIME_APPLICATION_JSON_UTF8;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -42,11 +43,7 @@ public class HttpTaskServerHistoryTest {
         taskServer = new HttpTaskServer(manager);
         taskServer.start();
         client = HttpClient.newHttpClient();
-
-        gson = new GsonBuilder()
-                .registerTypeAdapter(Duration.class, new DurationTypeAdapter())
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter())
-                .create();
+        this.gson = Managers.getDefaultGson();
     }
 
     @AfterAll
@@ -81,7 +78,7 @@ public class HttpTaskServerHistoryTest {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:8080/tasks"))
                 .POST(HttpRequest.BodyPublishers.ofString(taskJson))
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, MIME_APPLICATION_JSON_UTF8)
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
