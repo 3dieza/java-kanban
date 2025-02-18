@@ -7,11 +7,22 @@ import java.util.Objects;
 public class Task {
     private String name;
     private String description;
-    private int taskId;
+    private Integer id;
     private Status status;
     private Duration duration;
     private LocalDateTime startTime;
 
+    // Конструктор с ID
+    public Task(Integer id, String name, String description, Duration duration, LocalDateTime startTime) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        setStatus(Status.NEW);
+        this.startTime = startTime;
+        this.duration = duration;
+    }
+
+    // Конструктор без ID
     public Task(String name, String description, Duration duration, LocalDateTime startTime) {
         this.name = name;
         this.description = description;
@@ -26,7 +37,7 @@ public class Task {
      * @param other другой объект Task, данные которого нужно скопировать
      */
     public Task(Task other) {
-        this.taskId = other.taskId;
+        this.id = other.id;
         this.name = other.name;
         this.description = other.description;
         this.status = other.status;
@@ -34,12 +45,12 @@ public class Task {
         this.startTime = other.startTime;
     }
 
-    public int getId() {
-        return taskId;
+    public Integer getId() {
+        return id;
     }
 
-    public void setId(int id) {
-        this.taskId = id;
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -85,7 +96,7 @@ public class Task {
     @Override
     public String toString() {
         return "Task{" +
-                "id=" + taskId +
+                "id=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", status='" + status + '\'' +
@@ -98,11 +109,11 @@ public class Task {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        return taskId == task.taskId;
+        return Objects.equals(id, task.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId);
+        return Objects.hash(id);
     }
 }

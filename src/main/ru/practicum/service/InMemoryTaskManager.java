@@ -17,19 +17,9 @@ public class InMemoryTaskManager implements TaskManager {
     private int idCounter = 1;
     private final HistoryManager historyManager;
 
-    private final TreeSet<Epic> priorityEpics = new TreeSet<>((epic1, epic2) -> {
-        if (epic1.getStartTime() == null && epic2.getStartTime() == null) {
-            return Integer.compare(epic1.getId(), epic2.getId());
-        }
-        if (epic1.getStartTime() == null) return 1;
-        if (epic2.getStartTime() == null) return -1;
-        int compareByTime = epic1.getStartTime().compareTo(epic2.getStartTime());
-        if (compareByTime != 0) {
-            return compareByTime;
-        }
-        // Если startTime одинаковое, сравниваем по id
-        return Integer.compare(epic1.getId(), epic2.getId());
-    });
+    private final TreeSet<Epic> priorityEpics = new TreeSet<>(Comparator.comparing(
+            (Epic epic) -> epic.getStartTime() != null ? epic.getStartTime() : LocalDateTime.MIN
+    ).thenComparing(Epic::getId));
 
     private final TreeSet<Task> priorityTasks = new TreeSet<>((task1, task2) -> {
         if (task1.getStartTime() == null && task2.getStartTime() == null) {
@@ -67,20 +57,20 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void saveEpic(Epic epic) {
         epic.setId(idCounter++);
-        epic.setEpicId(epic.getId());
         updateEpicTime(epic);
+
         priorityEpics.add(epic);
+        System.out.println("Добавлен эпик в priorityEpics: " + epic.getId());
     }
 
     @Override
     public void saveSubtask(Subtask subtask) {
         validateTask(subtask);
         Epic epic = priorityEpics.stream()
-                .filter(e -> e.getId() == subtask.getEpicId())
+                .filter(e -> Objects.equals(e.getId(), subtask.getEpicId()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Эпик с ID " + subtask.getEpicId() + " не найден."));
         subtask.setId(idCounter++);
-        subtask.setSubtaskId(subtask.getId());
         if (subtask.getStartTime() != null) {
             prioritySubtasks.add(subtask);
         }
@@ -118,15 +108,48 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void updateTask(Task task) {
-        priorityTasks.remove(task);
-        validateTask(task);
-        priorityTasks.add(task);
+        if (task == null || task.getId() == null) {
+            throw new IllegalArgumentException("Task is null or ID is not set");
+        }
+
+        // Ищем задачу в TreeSet по ID
+        Task existingTask = priorityTasks.stream()
+                .filter(t -> Objects.equals(t.getId(), task.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Task with ID " + task.getId() + " does not exist"));
+
+        // Удаляем старую версию задачи из TreeSet
+        priorityTasks.remove(existingTask);
+
+        // Обновляем поля задачи
+        existingTask.setName(task.getName());
+        existingTask.setDescription(task.getDescription());
+        existingTask.setStartTime(task.getStartTime());
+        existingTask.setDuration(task.getDuration());
+
+        // Добавляем обновленную задачу обратно в TreeSet
+        priorityTasks.add(existingTask);
     }
 
     @Override
     public void updateEpic(Epic epic) {
-        priorityEpics.remove(epic);
-        priorityEpics.add(epic);
+        if (epic == null || epic.getId() == null) {
+            throw new IllegalArgumentException("Epic is null or ID is not set");
+        }
+
+        Epic existingEpic = priorityEpics.stream()
+                .filter(e -> Objects.equals(e.getId(), epic.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Epic with ID " + epic.getId() + " does not exist"));
+
+        priorityEpics.remove(existingEpic);
+
+        existingEpic.setName(epic.getName());
+        existingEpic.setDescription(epic.getDescription());
+        existingEpic.setStartTime(epic.getStartTime());
+        existingEpic.setDuration(epic.getDuration());
+
+        priorityEpics.add(existingEpic);
     }
 
     @Override
@@ -144,10 +167,25 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void deleteTaskById(int id) {
-        Task task = getTaskById(id);
-        if (task != null) {
-            priorityTasks.remove(task);
+        // Находим задачу в TreeSet
+        Task taskToDelete = priorityTasks.stream()
+                .filter(task -> task.getId() == id)
+                .findFirst()
+                .orElse(null);
+
+        if (taskToDelete != null) {
+            // Удаляем точный объект из TreeSet
+            boolean removed = priorityTasks.remove(taskToDelete);
+
+            // Проверяем, удалось ли удалить задачу
+            if (!removed) {
+                throw new IllegalStateException("Failed to remove task with ID " + id + " from TreeSet");
+            }
+
+            // Удаляем задачу из истории
             historyManager.remove(id);
+        } else {
+            throw new IllegalArgumentException("Task with ID " + id + " does not exist");
         }
     }
 
@@ -225,7 +263,7 @@ public class InMemoryTaskManager implements TaskManager {
 
     private void updateEpicStatus(Epic epic) {
         List<Subtask> subtasks = epic.getSubtasks();
-        if (subtasks.isEmpty()) {
+        if (subtasks == null || subtasks.isEmpty()) {
             epic.setStatus(Status.NEW);
             return;
         }
@@ -243,6 +281,10 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     void updateEpicTime(Epic epic) {
+        if (epic.getSubtasks() == null) {
+            epic.setSubtasks(new ArrayList<>()); // Инициализация пустого списка
+        }
+
         List<Subtask> subtasks = epic.getSubtasks();
         if (subtasks.isEmpty()) {
             epic.setStartTime(null);
@@ -250,20 +292,17 @@ public class InMemoryTaskManager implements TaskManager {
             return;
         }
 
-        // Вычисление времени начала эпика
         LocalDateTime startTime = subtasks.stream()
                 .map(Subtask::getStartTime)
                 .filter(Objects::nonNull)
                 .min(LocalDateTime::compareTo)
                 .orElse(null);
 
-        // Суммирование всех длительностей подзадач
         Duration totalDuration = subtasks.stream()
                 .map(Subtask::getDuration)
                 .filter(Objects::nonNull)
                 .reduce(Duration.ZERO, Duration::plus);
 
-        // Установка рассчитанных значений
         epic.setStartTime(startTime);
         epic.setDuration(totalDuration);
     }
@@ -282,7 +321,7 @@ public class InMemoryTaskManager implements TaskManager {
     private void validateTask(Task newTask) {
         for (Task existingTask : getPrioritizedTasks()) {
             // Пропускаем проверку самой задачи
-            if (existingTask.getId() == newTask.getId()) {
+            if (Objects.equals(existingTask.getId(), newTask.getId())) {
                 continue;
             }
 
@@ -316,23 +355,15 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public List<Task> getPrioritizedTasks() {
-        List<Task> sortedTasks = new ArrayList<>();
+        List<Task> prioritizedTasks = new ArrayList<>();
 
-        // Добавляем задачи (Tasks) в приоритетном порядке
-        sortedTasks.addAll(priorityTasks.stream()
-                .sorted(Comparator.comparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList());
+        // Объединяем задачи и подзадачи в один список
+        prioritizedTasks.addAll(priorityTasks);
+        prioritizedTasks.addAll(prioritySubtasks);
 
-        // Добавляем эпики (Epics) в приоритетном порядке
-        sortedTasks.addAll(priorityEpics.stream()
-                .sorted(Comparator.comparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList());
+        // Сортируем по `startTime`, при этом `null`-значения идут в конец
+        prioritizedTasks.sort(Comparator.comparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        // Добавляем подзадачи (Subtasks) в приоритетном порядке
-        sortedTasks.addAll(prioritySubtasks.stream()
-                .sorted(Comparator.comparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList());
-
-        return sortedTasks;
+        return prioritizedTasks;
     }
 }

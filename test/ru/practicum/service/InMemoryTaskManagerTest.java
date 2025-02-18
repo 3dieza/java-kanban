@@ -41,8 +41,6 @@ class InMemoryTaskManagerTest extends TaskManagerTest<InMemoryTaskManager> {
 
         Subtask subtask1 = new Subtask("Subtask", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0), epic.getId());
         Subtask subtask2 = new Subtask("Subtask", "Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 0, 0), epic.getId());
-        subtask1.setSubtaskId(1);
-        subtask2.setSubtaskId(1);
         assertEquals(subtask1, subtask2, "Подзадачи с одинаковым ID должны быть равны");
     }
 
@@ -52,10 +50,9 @@ class InMemoryTaskManagerTest extends TaskManagerTest<InMemoryTaskManager> {
         taskManager.saveEpic(epic);
 
         Subtask subtask = new Subtask("Subtask", "Description", Duration.ZERO, null, epic.getId());
-        subtask.setSubtaskId(epic.getId());
         taskManager.saveSubtask(subtask);
 
-        assertNotEquals(epic.getId(), subtask.getSubtaskId(), "Эпик не должен быть подзадачей самого себя");
+        assertNotEquals(epic.getId(), subtask.getId(), "Эпик не должен быть подзадачей самого себя");
     }
 
     @Test

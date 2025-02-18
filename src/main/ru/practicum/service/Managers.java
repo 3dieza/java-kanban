@@ -1,8 +1,16 @@
 package ru.practicum.service;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import ru.practicum.configuration.DurationTypeAdapter;
+import ru.practicum.configuration.LocalDateTimeTypeAdapter;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 /**
  * Класс-утилита Managers предоставляет стандартные методы для создания
- * экземпляров TaskManager и HistoryManager.
+ * экземпляров TaskManager, HistoryManager и Gson.
  *
  * <p>Класс является статическим и не позволяет создание экземпляров, так как
  * его методы предназначены для обеспечения единой точки доступа к реализации
@@ -34,5 +42,15 @@ public class Managers {
      */
     public static HistoryManager getDefaultHistoryManager() {
         return new InMemoryHistoryManager();
+    }
+
+    /**
+     * Статический метод, возвращающий сконфигурированный Gson.
+     */
+    public static Gson getDefaultGson() {
+        return new GsonBuilder()
+                .registerTypeAdapter(Duration.class, new DurationTypeAdapter())
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter())
+                .create();
     }
 }

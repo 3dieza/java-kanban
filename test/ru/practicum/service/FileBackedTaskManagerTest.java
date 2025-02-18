@@ -48,7 +48,6 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         manager.saveEpic(epic);
 
         Subtask subtask = new Subtask("Subtask 1", "Subtask Description", Duration.ofMinutes(30), LocalDateTime.of(2025, 1, 1, 10, 0), epic.getId());
-        subtask.setSubtaskId(2);
         subtask.setStatus(Status.NEW);
         manager.saveSubtask(subtask);
 
